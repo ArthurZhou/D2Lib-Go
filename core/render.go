@@ -1,11 +1,13 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gomarkdown/markdown"
 	"github.com/gorilla/mux"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -13,6 +15,10 @@ import (
 render.go
 Handle and render normal requests
 */
+
+type ExtraData struct {
+	Title string `json:"title"`
+}
 
 func RequestHandler() http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
@@ -32,10 +38,18 @@ func RequestHandler() http.HandlerFunc {
 					fileByte, _ := os.ReadFile(filePath) // read file as byte array
 					fileText := string(fileByte)         // convert byte array to string
 					if reqURL[len(reqURL)-3:] == ".md" { // is this a markdown file?
-						splPath := strings.Split(reqURL, "/")
-						fileName := strings.Join(splPath[len(splPath)-1:], "")
+						if strings.Contains(fileText, "<d2lib>") && strings.Contains(fileText, "</d2lib>") {
+							extraDataRaw := regexp.MustCompile(`<d2lib>\r*\n*((.|\n)*)\r*\n*</d2lib>`).FindString(fileText)
+							fileByte = regexp.MustCompile(`<d2lib>\r*\n*((.|\n)*)\r*\n*</d2lib>`).ReplaceAll(fileByte, []byte(""))
+							var extraData ExtraData
+							_ = json.Unmarshal([]byte(extraDataRaw[7:len(extraDataRaw)-8]), &extraData)
+							fileText = strings.ReplaceAll(os.Getenv("D2LIB_ipage"), "{{ TITLE }}", extraData.Title)
+						} else {
+							splPath := strings.Split(reqURL, "/")
+							fileName := strings.Join(splPath[len(splPath)-1:], "")
+							fileText = strings.ReplaceAll(os.Getenv("D2LIB_ipage"), "{{ TITLE }}", fileName)
+						}
 						// render markdown to html and put it into the template
-						fileText = strings.ReplaceAll(os.Getenv("D2LIB_ipage"), "{{ TITLE }}", fileName)
 						fileText = strings.ReplaceAll(fileText, "{{ CONTENT }}", string(markdown.ToHTML(fileByte, nil, nil)))
 						fileText = strings.ReplaceAll(fileText, "{{ MENU }}", os.Getenv("D2LIB_menu"))
 					} else if reqURL[len(reqURL)-5:] == ".html" { // is this a html file?

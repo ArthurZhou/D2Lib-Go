@@ -3,12 +3,11 @@ package main
 import (
 	"D2Lib/core"
 	"fmt"
+	"github.com/gorilla/mux"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/gorilla/mux"
 )
 
 /*

@@ -1,3 +1,8 @@
+<d2lib>
+{
+    "title": "Home"
+}
+</d2lib>
 # Home Page
 
-[html sample](/docs/text.html)
+[html example](/docs/text.html)
